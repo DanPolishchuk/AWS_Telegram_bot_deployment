@@ -1,0 +1,66 @@
+---
+- name: Deployment Telegram bot on AWS server
+  hosts: servers
+  become: true
+  tasks:
+
+    - name: Update&upgrade apt
+      apt: 
+        update_cache: yes
+        upgrade: 'yes'
+ 
+    - name: Install pip
+      apt:
+        name: python3-pip
+        state: present
+
+    - block:
+       
+        - name: Import the MongoDB GPG key
+          get_url:
+            url: https://www.mongodb.org/static/pgp/server-6.0.asc
+            dest: /home/ubuntu/
+
+        - name: Import the MongoDB GPG key
+          shell: 'cat server-6.0.asc | gpg --dearmor | tee /etc/apt/keyrings/mongodb.gpg >/dev/null'
+
+        - name: Add the MongoDB repository to system’s package manager
+          shell: 'echo "deb [ arch=amd64,arm64 signed-by=/etc/apt/keyrings/mongodb.gpg] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" >> /etc/apt/sources.list.d/mongo.list'
+
+        - name: Update apt again
+          apt: 
+            update_cache: yes
+            
+        - name: Install MongoDB
+          apt: 
+            name: mongodb-org
+            state: present
+
+        - name: Start the MongoDB service
+          service:
+            name: mongod
+            state: started
+
+    - name: Copy Python code to server
+      synchronize:
+        src: /home/i573830/Desktop/AWS_telegram_bot_deployment/bot/
+        dest: /home/ubuntu/bot/
+
+    - name: Install all requirements
+      pip:
+        requirements: /home/ubuntu/bot/requirements.txt
+
+    - name: Copy starting script
+      copy: 
+        src: /home/i573830/Desktop/AWS_telegram_bot_deployment/starting.sh
+        dest: /home/ubuntu/
+
+    - name: Set executable permissions for script
+      file:
+        path: /home/ubuntu/starting.sh
+        mode: 777
+
+    - name: Run script that runs python code
+      command: /home/ubuntu/starting.sh       
+
+      # press cntr+c after +- 3 seconds after the last task was started

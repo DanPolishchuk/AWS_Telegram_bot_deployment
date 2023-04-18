@@ -1,0 +1,4 @@
+telebot
+bs4
+requests
+pymongo
